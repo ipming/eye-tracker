@@ -2,169 +2,177 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Advanced Eye-Tracking Communicator</title>
-    <!-- Stable WebGazer CDN -->
+    <!-- 1. Prevent Zooming -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
+    <!-- 2. Link the Manifest -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- 3. iOS / iPad Specific Settings (Important!) -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="EyeTalk">
+    <link rel="apple-touch-icon" href="icon.png">
+
+    <title>Eye Gaze Communicator</title>
     <script src="https://cdn.jsdelivr.net/npm/webgazer" type="text/javascript"></script>
     <style>
         /* --- GLOBAL STYLES --- */
         body { 
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
             text-align: center; background: #eaeff2; 
             margin: 0; padding: 0; overflow: hidden; height: 100vh;
             display: flex; flex-direction: column;
+            -webkit-user-select: none; /* Disable text selection on iPad */
         }
 
-        /* --- VIDEO PANEL (Top Right) --- */
+        /* --- VIDEO PANEL (Made smaller for iPad) --- */
         #webgazerVideoContainer {
-            position: fixed !important; top: 15px !important; right: 15px !important; 
+            position: fixed !important; top: 10px !important; right: 10px !important; 
             left: auto !important;
-            width: 260px !important; height: auto !important;
-            border: 4px solid #333; border-radius: 12px; z-index: 9000;
+            width: 180px !important; height: auto !important; /* Smaller on iPad */
+            border: 3px solid #333; border-radius: 12px; z-index: 9000;
             background: black;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            pointer-events: none; /* Let touches pass through */
         }
 
         /* --- 1. GUIDELINE MODAL --- */
         #guideline-screen {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 100000; color: white;
-            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            background: rgba(0,0,0,0.95); z-index: 100000; color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 20px;
         }
         .guide-box {
-            background: #2c3e50; padding: 40px; border-radius: 15px; max-width: 600px; text-align: left;
+            background: #2c3e50; padding: 30px; border-radius: 15px; max-width: 600px; text-align: left;
             border: 2px solid #3498db;
         }
         .guide-box h2 { margin-top: 0; color: #3498db; }
-        .guide-box li { margin-bottom: 10px; font-size: 18px; }
+        .guide-box li { margin-bottom: 12px; font-size: 18px; line-height: 1.4; }
         .btn-start {
-            margin-top: 20px; padding: 15px 40px; font-size: 22px; 
-            background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;
+            margin-top: 20px; padding: 20px; font-size: 22px; 
+            background: #27ae60; color: white; border: none; border-radius: 12px; width: 100%;
+            touch-action: manipulation;
         }
 
         /* --- 2. CALIBRATION OVERLAY --- */
         #calibration-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: #111; z-index: 99999;
-            display: none; /* Hidden initially */
-            flex-direction: column; align-items: center; justify-content: center;
+            display: none; flex-direction: column; align-items: center; justify-content: center;
         }
         .cal-point {
-            width: 30px; height: 30px; border-radius: 50%;
-            background: #e74c3c; border: 3px solid white;
+            width: 40px; height: 40px; border-radius: 50%; /* Larger touch target */
+            background: #e74c3c; border: 4px solid white;
             position: absolute; cursor: pointer;
-            box-shadow: 0 0 0 10px rgba(231, 76, 60, 0.2); /* Outer glow to help focus */
-            transition: transform 0.1s, background 0.2s;
+            box-shadow: 0 0 0 10px rgba(231, 76, 60, 0.2); 
+            transition: transform 0.1s;
         }
-        .cal-point:active { transform: scale(0.8); background: #f1c40f; }
+        .cal-point:active { transform: scale(1.2); background: #f1c40f; }
 
-        /* Calibration Positions (9 Points) */
-        #pt1 { top: 40px; left: 40px; } 
-        #pt2 { top: 40px; right: 40px; }
-        #pt3 { bottom: 40px; left: 40px; }
-        #pt4 { bottom: 40px; right: 40px; }
+        /* Calibration Positions */
+        #pt1 { top: 30px; left: 30px; } 
+        #pt2 { top: 30px; right: 30px; }
+        #pt3 { bottom: 30px; left: 30px; }
+        #pt4 { bottom: 30px; right: 30px; }
         #pt5 { top: 50%; left: 50%; transform: translate(-50%, -50%); } 
-        #pt6 { top: 40px; left: 50%; transform: translateX(-50%); } 
-        #pt7 { bottom: 40px; left: 50%; transform: translateX(-50%); } 
-        #pt8 { top: 50%; left: 40px; transform: translateY(-50%); } 
-        #pt9 { top: 50%; right: 40px; transform: translateY(-50%); }
+        #pt6 { top: 30px; left: 50%; transform: translateX(-50%); } 
+        #pt7 { bottom: 30px; left: 50%; transform: translateX(-50%); } 
+        #pt8 { top: 50%; left: 30px; transform: translateY(-50%); } 
+        #pt9 { top: 50%; right: 30px; transform: translateY(-50%); }
 
         #cal-info { color: white; font-size: 24px; position: absolute; top: 15%; pointer-events: none;}
         
         /* --- 3. MAIN INTERFACE --- */
         #main-interface { 
             display: none; flex: 1; flex-direction: column; 
-            padding: 20px; box-sizing: border-box;
-            max-width: 1200px; margin: 0 auto; width: 100%;
+            padding: 15px; box-sizing: border-box; width: 100%;
         }
 
         /* Sentence Bar */
-        #sentence-container {
-            flex: 0 0 auto; margin-bottom: 20px;
-            display: flex; justify-content: flex-start;
-        }
+        #sentence-container { flex: 0 0 auto; margin-bottom: 15px; display: flex; justify-content: flex-start; }
         #sentence-bar {
-            background: white; width: 65%; padding: 20px; 
-            font-size: 32px; font-weight: bold; border: 3px solid #34495e; 
-            border-radius: 10px; min-height: 50px; text-align: left;
+            background: white; width: 70%; padding: 15px; 
+            font-size: 24px; font-weight: bold; border: 2px solid #34495e; 
+            border-radius: 10px; min-height: 40px; text-align: left;
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
 
-        /* Content Area (Split: Words vs Actions) */
-        #content-area {
-            display: flex; flex: 1; gap: 20px;
+        /* Content Area */
+        #content-area { display: flex; flex: 1; gap: 15px; height: 100%; }
+        
+        .grid { 
+            flex: 3; display: grid; 
+            grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(3, 1fr);
+            gap: 12px; 
+        }
+        
+        .actions-panel { 
+            flex: 1; display: flex; flex-direction: column; gap: 12px; 
         }
 
-        /* Word Grid (Left, Larger) */
-        .grid {
-            flex: 3;
-            display: grid; grid-template-columns: repeat(3, 1fr); 
-            grid-template-rows: repeat(3, 1fr); gap: 15px;
-        }
-
-        /* Action Panel (Right, Smaller) */
-        .actions-panel {
-            flex: 1;
-            display: flex; flex-direction: column; gap: 15px;
-        }
-
-        /* SHARED CARD STYLES */
+        /* CARD STYLES */
         .gazeable {
-            background: white; border: 1px solid #bdc3c7; border-radius: 10px;
+            background: white; border: 1px solid #bdc3c7; border-radius: 12px;
             display: flex; align-items: center; justify-content: center;
-            font-size: 24px; font-weight: 600; cursor: pointer;
-            position: relative; user-select: none;
+            font-size: 22px; font-weight: 600; 
+            position: relative; 
             box-shadow: 0 3px 5px rgba(0,0,0,0.1);
             transition: transform 0.1s;
+            /* iOS Touch Optimization */
+            touch-action: manipulation; 
+        }
+        .gazeable:active { background: #eee; }
+
+        .word-card { color: #2c3e50; }
+        .action-card { color: white; font-size: 18px; }
+        
+        .act-speak { background: #3498db; }
+        .act-trans { background: #27ae60; }
+        .act-clear { background: #e74c3c; }
+        .act-recal { background: #f39c12; }
+
+        .gazeable.gazing { transform: scale(0.96); filter: brightness(1.1); }
+        
+        .progress {
+            position: absolute; bottom: 0; left: 0; height: 6px; 
+            background: rgba(0,0,0,0.3); width: 0%;
+            border-bottom-left-radius: 12px; border-bottom-right-radius: 12px;
         }
 
-        /* Specific Colors */
-        .word-card { color: #2c3e50; }
-        .action-card { color: white; font-size: 20px; }
-        
-        .act-speak { background: #3498db; border-color: #2980b9; }
-        .act-trans { background: #27ae60; border-color: #219150; }
-        .act-clear { background: #e74c3c; border-color: #c0392b; }
-        .act-recal { background: #f39c12; border-color: #d35400; font-size: 18px; }
-
-        /* Gaze Feedback */
-        .gazeable.gazing { transform: scale(0.98); filter: brightness(1.1); }
-        
-        /* Progress Bar inside cards */
-        .progress {
-            position: absolute; bottom: 0; left: 0; height: 8px; 
-            background: rgba(0,0,0,0.3); width: 0%;
-            border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+        /* Media Query for Portrait iPad (Just in case) */
+        @media (max-width: 800px) {
+            .grid { grid-template-columns: repeat(2, 1fr); }
+            #content-area { flex-direction: column; }
+            .actions-panel { flex-direction: row; flex: 0 0 80px; }
         }
 
     </style>
 </head>
 <body>
 
-    <!-- 1. GUIDELINES POPUP -->
+    <!-- GUIDELINES -->
     <div id="guideline-screen">
         <div class="guide-box">
-            <h2>Eye Tracking Setup</h2>
+            <h2>iPad Setup</h2>
             <ul>
-                <li><b>Lighting:</b> Ensure your face is well-lit. No bright window behind you.</li>
-                <li><b>Position:</b> Sit comfortably. Keep your head relatively still.</li>
-                <li><b>Calibration:</b> You will see 9 Red Dots.</li>
-                <li><b>How to Calibrate:</b> Look at a dot, then <b>click it 5 times</b> while staring at it.</li>
-                <li><b>Usage:</b> Stare at a button for <b>2 seconds</b> to select it.</li>
+                <li><b>Orientation:</b> Please rotate iPad to <b>Landscape</b>.</li>
+                <li><b>Permissions:</b> When asked, tap "Allow" for Camera.</li>
+                <li><b>Calibration:</b> Tap each red dot <b>6 times</b>.</li>
+                <li><b>Hybrid Mode:</b> You can stare at buttons OR tap them with your finger.</li>
             </ul>
-            <button class="btn-start" onclick="startApp()">I Understand - Start Camera</button>
+            <button class="btn-start" onclick="startApp()">Start Camera</button>
         </div>
     </div>
 
-    <!-- 2. CALIBRATION OVERLAY -->
+    <!-- CALIBRATION -->
     <div id="calibration-overlay">
         <div id="cal-info">
             <h2 style="margin:0;">Calibration</h2>
-            <p id="cal-subtext" style="font-size:18px;">Click each dot 5 times while looking at it.</p>
-            <div id="cal-progress" style="color: #3498db; font-weight:bold;">Progress: 0%</div>
+            <p id="cal-subtext" style="font-size:18px;">Tap the dot 6 times.</p>
+            <div id="cal-progress" style="color: #3498db; font-weight:bold;">0 / 54 Taps</div>
         </div>
         
-        <!-- 9 Points -->
         <div class="cal-point" id="pt1" onclick="handleCalClick(this)"></div>
         <div class="cal-point" id="pt2" onclick="handleCalClick(this)"></div>
         <div class="cal-point" id="pt3" onclick="handleCalClick(this)"></div>
@@ -176,35 +184,29 @@
         <div class="cal-point" id="pt9" onclick="handleCalClick(this)"></div>
     </div>
 
-    <!-- 3. MAIN INTERFACE -->
+    <!-- MAIN INTERFACE -->
     <div id="main-interface">
-        
-        <!-- Top Bar -->
         <div id="sentence-container">
             <div id="sentence-bar">...</div>
         </div>
 
-        <!-- Middle Area -->
         <div id="content-area">
-            
-            <!-- Left: Word Grid -->
             <div class="grid" id="word-grid"></div>
 
-            <!-- Right: Action Buttons (Eye Gaze Enabled) -->
             <div class="actions-panel">
-                <div class="gazeable action-card act-speak" data-action="SPEAK">
+                <div class="gazeable action-card act-speak" onclick="triggerAction(this)" data-action="SPEAK">
                     SPEAK
                     <div class="progress"></div>
                 </div>
-                <div class="gazeable action-card act-trans" data-action="TRANSLATE">
-                    TRANSLATE (ES)
+                <div class="gazeable action-card act-trans" onclick="triggerAction(this)" data-action="TRANSLATE">
+                    TRANSLATE
                     <div class="progress"></div>
                 </div>
-                <div class="gazeable action-card act-clear" data-action="CLEAR">
+                <div class="gazeable action-card act-clear" onclick="triggerAction(this)" data-action="CLEAR">
                     CLEAR
                     <div class="progress"></div>
                 </div>
-                <div class="gazeable action-card act-recal" data-action="RECALIBRATE" data-dwell="3000">
+                <div class="gazeable action-card act-recal" onclick="triggerAction(this)" data-action="RECALIBRATE" data-dwell="3000">
                     RECALIBRATE
                     <div class="progress"></div>
                 </div>
@@ -213,190 +215,141 @@
     </div>
 
 <script>
-    // --- CONFIGURATION ---
+    // --- CONFIG ---
     const WORDS = ["YES", "NO", "WATER", "FOOD", "PAIN", "TOILET", "COLD", "HOT", "THANKS"];
     const TRANSLATIONS = {
         "YES": "SÍ", "NO": "NO", "WATER": "AGUA", "FOOD": "COMIDA",
         "PAIN": "DOLOR", "TOILET": "BAÑO", "COLD": "FRÍO", "HOT": "CALIENTE", "THANKS": "GRACIAS"
     };
 
-    // TIMING SETTINGS
-    const DEFAULT_DWELL_MS = 1500;  // 2 Seconds standard
-    const SMOOTHING_BUFFER = 30;    // Increased for stability (higher = less jitter, more lag)
+    const DEFAULT_DWELL_MS = 2000;  
+    const SMOOTHING_BUFFER = 30; // Higher buffer for iPad camera stability
+    
+    // CALIBRATION
+    const CLICKS_PER_PT = 6;
+    const TOTAL_POINTS = 9;
+    const TOTAL_CLICKS_REQ = TOTAL_POINTS * CLICKS_PER_PT;
 
-    // --- STATE VARIABLES ---
+    // STATE
     let sentence = [];
     let currentGazeTarget = null;
     let gazeStartTime = 0;
-    
     let xHistory = [];
     let yHistory = [];
-    
     let calibrationClicks = 0;
-    const CLICKS_PER_PT = 5;
-    const TOTAL_POINTS = 9;
-    const TOTAL_CLICKS_REQ = TOTAL_POINTS * CLICKS_PER_PT;
 
     const synth = window.speechSynthesis;
     const sentenceBar = document.getElementById('sentence-bar');
     const wordGrid = document.getElementById('word-grid');
 
-    // --- INITIALIZATION ---
-    
-    // 1. Build Word Grid Dynamically
+    // --- SETUP ---
     WORDS.forEach(word => {
         const div = document.createElement('div');
-        div.className = 'gazeable word-card'; // Add 'gazeable' class
+        div.className = 'gazeable word-card'; 
         div.dataset.word = word;
+        div.onclick = function() { triggerAction(this); }; 
         div.innerHTML = `${word}<div class="progress"></div>`;
         wordGrid.appendChild(div);
     });
 
-    // 2. Start Button Clicked
     async function startApp() {
         document.getElementById('guideline-screen').style.display = 'none';
         
-        // Initialize WebGazer
+        // Mobile-specific webgazer settings
         await webgazer.setRegression('ridge') 
             .setGazeListener(gazeListener)
             .saveDataAcrossSessions(false) 
             .begin();
             
-        // Show the red dot so caregiver can see where it thinks eyes are
+        // Setup video to be non-intrusive
         webgazer.showPredictionPoints(true); 
-
-        // Center the prediction dot style
-        const dot = document.getElementById('webgazerGazeDot');
-        if(dot) {
-            dot.style.width = '15px';
-            dot.style.height = '15px';
-            dot.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
+        
+        // Fix iOS Video Element Sizing
+        const video = document.getElementById('webgazerVideoFeed');
+        if(video) {
+            video.style.display = 'block';
+            video.style.position = 'absolute';
+            video.style.top = '0';
+            video.style.left = '0';
+            video.style.width = '100%';
+            video.style.height = '100%';
         }
-
+        
         enterCalibrationMode();
     }
 
-    // --- CALIBRATION LOGIC ---
-
+    // --- CALIBRATION ---
     function enterCalibrationMode() {
         document.getElementById('main-interface').style.display = 'none';
         document.getElementById('calibration-overlay').style.display = 'flex';
-        
-        // Reset State
         calibrationClicks = 0;
         updateCalProgress();
-        webgazer.clearData(); // Important: Start fresh
-        
-        // Reset visual dots
-        document.querySelectorAll('.cal-point').forEach(el => {
-            el.style.opacity = '1'; 
-            el.style.backgroundColor = '#e74c3c';
-        });
+        webgazer.clearData();
+        document.querySelectorAll('.cal-point').forEach(el => el.style.opacity = '1');
     }
 
     function handleCalClick(el) {
         calibrationClicks++;
-        
-        // Visual Feedback
-        el.style.backgroundColor = '#f1c40f'; // Flash Yellow
-        setTimeout(() => el.style.backgroundColor = '#e74c3c', 200);
-
+        el.style.backgroundColor = '#f1c40f'; 
+        setTimeout(() => el.style.backgroundColor = '#e74c3c', 100);
         updateCalProgress();
-
-        if (calibrationClicks >= TOTAL_CLICKS_REQ) {
-            finishCalibration();
-        }
+        if (calibrationClicks >= TOTAL_CLICKS_REQ) finishCalibration();
     }
 
     function updateCalProgress() {
-        const pct = Math.round((calibrationClicks / TOTAL_CLICKS_REQ) * 100);
-        document.getElementById('cal-progress').innerText = `Progress: ${pct}%`;
-        
-        if (pct < 50) {
-            document.getElementById('cal-subtext').innerText = "Keep going! Look at the clicked dot.";
-        } else {
-            document.getElementById('cal-subtext').innerText = "Almost there. Keep head still.";
-        }
+        document.getElementById('cal-progress').innerText = `${calibrationClicks} / ${TOTAL_CLICKS_REQ} Taps`;
     }
 
     function finishCalibration() {
         document.getElementById('calibration-overlay').style.display = 'none';
-        document.getElementById('main-interface').style.display = 'flex'; // Use Flex for layout
-        speak("System Ready");
+        document.getElementById('main-interface').style.display = 'flex'; 
+        speak("Ready");
     }
 
-    // --- GAZE PROCESSING ---
-
+    // --- GAZE & INTERACTION ---
     function gazeListener(data, clock) {
         if (data == null) return;
-        
-        // 1. Smooth the raw data
         const smooth = getSmoothedCoordinates(data.x, data.y);
-        
-        // 2. Interact only if NOT in calibration mode
         if (document.getElementById('calibration-overlay').style.display === 'none') {
             handleIntersection(smooth.x, smooth.y);
         }
     }
 
-    // Simple Moving Average Buffer to reduce jitter
     function getSmoothedCoordinates(x, y) {
         xHistory.push(x);
         yHistory.push(y);
-        
         if (xHistory.length > SMOOTHING_BUFFER) {
-            xHistory.shift();
-            yHistory.shift();
+            xHistory.shift(); yHistory.shift();
         }
-        
         const avgX = xHistory.reduce((a,b)=>a+b,0) / xHistory.length;
         const avgY = yHistory.reduce((a,b)=>a+b,0) / yHistory.length;
-        
         return { x: avgX, y: avgY };
     }
 
-    // --- INTERACTION LOGIC (The Core) ---
-
     function handleIntersection(x, y) {
-        // Temporarily hide the prediction dot so we can pick the element underneath it
-        const dot = document.getElementById('webgazerGazeDot');
-        if(dot) dot.style.display = 'none';
-        
+        // iOS Safari optimization: minimize DOM reads
         const element = document.elementFromPoint(x, y);
-        
-        if(dot) dot.style.display = 'block'; // Show it again
 
-        // Check if element is "gazeable" (Word OR Action Button)
         if (element && element.classList.contains('gazeable')) {
             if (currentGazeTarget !== element) {
-                resetDwell(); // Stop looking at old thing
-                
+                resetDwell(); 
                 currentGazeTarget = element;
                 element.classList.add('gazing');
                 gazeStartTime = Date.now();
-                
                 requestAnimationFrame(dwellLoop);
             }
         } else {
-            // Looking at blank space
             resetDwell();
         }
     }
 
     function dwellLoop() {
         if (!currentGazeTarget) return;
-
         const elapsed = Date.now() - gazeStartTime;
-        
-        // Check if button has custom time (e.g. Recalibrate takes longer)
         const requiredTime = currentGazeTarget.dataset.dwell ? parseInt(currentGazeTarget.dataset.dwell) : DEFAULT_DWELL_MS;
         
-        // Visual Progress
         const bar = currentGazeTarget.querySelector('.progress');
-        if(bar) {
-            const pct = Math.min((elapsed / requiredTime) * 100, 100);
-            bar.style.width = pct + '%';
-        }
+        if(bar) bar.style.width = Math.min((elapsed / requiredTime) * 100, 100) + '%';
 
         if (elapsed >= requiredTime) {
             triggerAction(currentGazeTarget);
@@ -415,61 +368,42 @@
         currentGazeTarget = null;
     }
 
-    // --- EXECUTE ACTIONS ---
-
+    // --- ACTIONS ---
     function triggerAction(element) {
-        // Visual Flash
         const originalColor = element.style.backgroundColor;
-        element.style.backgroundColor = '#ecf0f1'; // Flash white/grey
-        setTimeout(() => element.style.backgroundColor = originalColor, 200);
+        element.style.filter = "brightness(0.8)";
+        setTimeout(() => element.style.filter = "brightness(1)", 150);
 
-        // 1. Is it a WORD?
         if (element.dataset.word) {
             const word = element.dataset.word;
             sentence.push(word);
             sentenceBar.innerText = sentence.join(" ");
             speak(word);
-        }
-        
-        // 2. Is it an ACTION?
-        else if (element.dataset.action) {
+        } else if (element.dataset.action) {
             const action = element.dataset.action;
-            
-            if (action === "SPEAK") {
-                speak(sentence.join(" "));
-            }
-            else if (action === "CLEAR") {
-                sentence = [];
-                sentenceBar.innerText = "...";
-                speak("Cleared");
-            }
+            if (action === "SPEAK") speak(sentence.join(" "));
+            else if (action === "CLEAR") { sentence = []; sentenceBar.innerText = "..."; speak("Cleared"); }
             else if (action === "TRANSLATE") {
                 const tr = sentence.map(w => TRANSLATIONS[w] || w).join(" ");
                 sentenceBar.innerText = tr;
                 speak(tr, 'es-ES');
-            }
-            else if (action === "RECALIBRATE") {
+            } else if (action === "RECALIBRATE") {
                 speak("Recalibrating");
-                setTimeout(enterCalibrationMode, 1000); // Small delay
+                resetDwell();
+                setTimeout(enterCalibrationMode, 500); 
             }
         }
     }
 
     function speak(text, lang='en-US') {
         if (!text || text === "...") return;
-        
-        // Cancel current speech to prevent queue buildup
         synth.cancel(); 
-
         const u = new SpeechSynthesisUtterance(text);
         u.lang = lang;
-        u.rate = 0.9; // Slightly slower is usually better for patients
         synth.speak(u);
     }
 
-    // Clean up
     window.onbeforeunload = () => webgazer.end();
 </script>
 </body>
 </html>
-
