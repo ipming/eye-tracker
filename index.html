@@ -4,14 +4,46 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Eye-Tracking Communicator</title>
-    <!-- Load WebGazer.js from a stable CDN -->
     <script src="https://cdn.jsdelivr.net/npm/webgazer" type="text/javascript"></script>
     <style>
-        body { font-family: 'Arial', sans-serif; text-align: center; background: #f0f0f0; margin: 0; padding: 20px; }
+        body { 
+            font-family: 'Arial', sans-serif; text-align: center; background: #f0f0f0; 
+            margin: 0; padding: 20px; overflow: hidden; /* Prevent scrolling */
+        }
+
+        /* --- CALIBRATION OVERLAY --- */
+        #calibration-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.95); z-index: 10000;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
         
+        .cal-point {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: red; border: 3px solid white;
+            position: absolute; cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .cal-point:active { transform: scale(0.8); background: yellow; }
+
+        /* Positions for 5-point calibration */
+        #pt1 { top: 10%; left: 10%; } /* Top Left */
+        #pt2 { top: 10%; right: 50%; transform: translateX(50%); } /* Top Center */
+        #pt3 { top: 10%; right: 10%; } /* Top Right */
+        #pt4 { bottom: 10%; left: 10%; } /* Bottom Left */
+        #pt5 { bottom: 10%; right: 10%; } /* Bottom Right */
+        #pt-center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; }
+
+        #cal-instructions {
+            color: white; font-size: 24px; margin-top: -100px;
+        }
+
+        /* --- MAIN UI --- */
+        #main-interface { display: none; opacity: 0; transition: opacity 1s; }
+
         #sentence-bar {
             background: white; padding: 20px; font-size: 28px; border: 2px solid #333;
-            min-height: 40px; margin-bottom: 20px; border-radius: 10px;
+            min-height: 40px; margin-bottom: 30px; border-radius: 10px; width: 60%; margin-left: 5%;
         }
 
         .grid {
@@ -22,66 +54,87 @@
         .card {
             background: white; border: 1px solid #ccc; border-radius: 8px;
             padding: 40px; font-size: 24px; cursor: pointer;
-            transition: background 0.2s, transform 0.1s;
-            position: relative;
-            user-select: none; /* Prevent text selection */
+            position: relative; user-select: none;
         }
         
-        .card.gazing { background: #e0f7fa; transform: scale(1.05); border: 2px solid #00acc1; }
+        .card.gazing { background: #e0f7fa; transform: scale(1.02); border: 2px solid #00acc1; }
         
         .progress {
             position: absolute; bottom: 0; left: 0; height: 5px; background: #00acc1; width: 0%;
+            transition: width 0.1s linear;
         }
 
-        .controls { margin-top: 30px; display: flex; justify-content: center; gap: 20px; }
-        .btn-action {
-            padding: 15px 30px; font-size: 20px; border: none; border-radius: 5px; color: white; cursor: pointer;
-        }
+        .controls { margin-top: 40px; display: flex; justify-content: center; gap: 20px; }
+        .btn-action { padding: 15px 30px; font-size: 20px; border: none; border-radius: 5px; color: white; cursor: pointer; }
         .btn-speak { background: #2196F3; }
         .btn-translate { background: #4CAF50; }
         .btn-clear { background: #f44336; }
 
-        /* Force video to top left */
+        /* --- VIDEO PANEL (Top Right) --- */
         #webgazerVideoContainer {
-            position: fixed !important; top: 10px !important; left: 10px !important;
-            width: 240px !important; height: 180px !important; border: 2px solid red; z-index: 100;
+            position: fixed !important; top: 10px !important; right: 10px !important; left: auto !important;
+            width: 200px !important; height: auto !important;
+            border: 3px solid #333; border-radius: 10px; z-index: 5000;
         }
     </style>
 </head>
 <body>
 
-    <div id="sentence-bar">Thinking...</div>
-
-    <div class="grid" id="word-grid"></div>
-
-    <div class="controls">
-        <button class="btn-action btn-speak" id="btn-speak">Speak</button>
-        <button class="btn-action btn-translate" id="btn-translate">Translate (ES)</button>
-        <button class="btn-action btn-clear" id="btn-clear">Clear</button>
+    <!-- CALIBRATION SCREEN -->
+    <div id="calibration-overlay">
+        <div id="cal-instructions">
+            Look at the RED DOTS and click each one <b>5 times</b>.<br>
+            <span style="font-size:16px; color: #ccc;">(Keep your head still!)</span>
+        </div>
+        <div class="cal-point" id="pt1" onclick="recordCalibration(this)"></div>
+        <div class="cal-point" id="pt2" onclick="recordCalibration(this)"></div>
+        <div class="cal-point" id="pt3" onclick="recordCalibration(this)"></div>
+        <div class="cal-point" id="pt-center" onclick="recordCalibration(this)"></div>
+        <div class="cal-point" id="pt4" onclick="recordCalibration(this)"></div>
+        <div class="cal-point" id="pt5" onclick="recordCalibration(this)"></div>
     </div>
 
-    <p style="margin-top:20px; color:gray;">
-        <b>Calibration:</b> 1. Allow Camera. 2. Click the RED DOTS to calibrate. <br>
-        3. Stare at a word for <b>2 seconds</b> to select it.
-    </p>
+    <!-- MAIN APP -->
+    <div id="main-interface">
+        <div id="sentence-bar">Thinking...</div>
+        <div class="grid" id="word-grid"></div>
+        <div class="controls">
+            <button class="btn-action btn-speak" id="btn-speak">Speak</button>
+            <button class="btn-action btn-translate" id="btn-translate">Translate (ES)</button>
+            <button class="btn-action btn-clear" id="btn-clear">Clear</button>
+        </div>
+    </div>
 
 <script>
+    // --- CONFIGURATION ---
     const WORDS = ["YES", "NO", "WATER", "FOOD", "PAIN", "TOILET", "COLD", "HOT", "THANKS"];
     const TRANSLATIONS = {
         "YES": "SÍ", "NO": "NO", "WATER": "AGUA", "FOOD": "COMIDA",
-        "PAIN": "DOLOR", "TOILET": "BAÑO", "COLD": "FRÍO", "HOT": "CALIENTE",
-        "THANKS": "GRACIAS"
+        "PAIN": "DOLOR", "TOILET": "BAÑO", "COLD": "FRÍO", "HOT": "CALIENTE", "THANKS": "GRACIAS"
     };
-
+    
+    // ADJUST THESE FOR PERFORMANCE
     const DWELL_TIME_MS = 2000; 
+    const SMOOTHING_BUFFER_SIZE = 15; // Higher = Smoother but slower lag. Lower = Jittery but fast.
+
+    // --- VARIABLES ---
     let sentence = [];
     let currentGazeTarget = null;
     let gazeStartTime = 0;
+    
+    // Smoothing Arrays
+    let xHistory = [];
+    let yHistory = [];
+
+    // Calibration State
+    let calibrationClicks = 0;
+    const TOTAL_CLICKS_NEEDED = 30; // 6 dots * 5 clicks each
+
     const synth = window.speechSynthesis;
     const sentenceBar = document.getElementById('sentence-bar');
     const wordGrid = document.getElementById('word-grid');
 
-    // Build Grid
+    // Build Word Grid
     WORDS.forEach(word => {
         const div = document.createElement('div');
         div.className = 'card';
@@ -90,20 +143,72 @@
         wordGrid.appendChild(div);
     });
 
+    // --- WEBGAZER SETUP ---
     window.onload = async function() {
-        // Initialize WebGazer
+        webgazer.clearData(); // Wipe old data
+
         await webgazer.setRegression('ridge') 
             .setGazeListener((data, clock) => {
-                if (data) checkGaze(data.x, data.y);
+                if (data == null) return;
+                
+                // 1. APPLY SMOOTHING
+                const smoothPos = getSmoothedCoordinates(data.x, data.y);
+                
+                // 2. CHECK INTERACTION (Only if calibration is done)
+                if(document.getElementById('calibration-overlay').style.display === 'none'){
+                    checkGaze(smoothPos.x, smoothPos.y);
+                }
             })
-            .saveDataAcrossSessions(true)
+            .saveDataAcrossSessions(false) // Don't save across reloads for fresh calibration
             .begin();
             
+        // Show the red prediction dot to help user see where computer thinks they are looking
         webgazer.showPredictionPoints(true); 
     };
 
+    // --- SMOOTHING ALGORITHM ---
+    function getSmoothedCoordinates(x, y) {
+        xHistory.push(x);
+        yHistory.push(y);
+
+        // Keep buffer at fixed size
+        if (xHistory.length > SMOOTHING_BUFFER_SIZE) {
+            xHistory.shift();
+            yHistory.shift();
+        }
+
+        // Calculate Average
+        const avgX = xHistory.reduce((a, b) => a + b, 0) / xHistory.length;
+        const avgY = yHistory.reduce((a, b) => a + b, 0) / yHistory.length;
+
+        return { x: avgX, y: avgY };
+    }
+
+    // --- CALIBRATION LOGIC ---
+    function recordCalibration(element) {
+        calibrationClicks++;
+        
+        // Visual feedback on click
+        let opacity = parseFloat(element.style.opacity || 1);
+        element.style.opacity = opacity - 0.15; // Fade out slightly per click
+
+        if (calibrationClicks >= TOTAL_CLICKS_NEEDED) {
+            endCalibration();
+        }
+    }
+
+    function endCalibration() {
+        document.getElementById('calibration-overlay').style.display = 'none';
+        const main = document.getElementById('main-interface');
+        main.style.display = 'block';
+        setTimeout(() => main.style.opacity = 1, 100);
+        speak("Calibration complete. Ready.");
+    }
+
+    // --- GAZE LOGIC ---
     function checkGaze(x, y) {
         const element = document.elementFromPoint(x, y);
+
         if (element && element.classList.contains('card')) {
             if (currentGazeTarget !== element) {
                 resetGaze();
@@ -140,10 +245,12 @@
         currentGazeTarget = null;
     }
 
+    // --- APP FUNCTIONS ---
     function selectWord(word) {
         sentence.push(word);
         sentenceBar.innerText = sentence.join(" ");
         speak(word);
+        
         const btn = document.querySelector(`.card[data-word="${word}"]`);
         if(btn) {
             btn.style.backgroundColor = '#81c784';
@@ -159,7 +266,7 @@
     }
 
     document.getElementById('btn-speak').onclick = () => speak(sentence.join(" "));
-    document.getElementById('btn-clear').onclick = () => { sentence = []; sentenceBar.innerText = ""; };
+    document.getElementById('btn-clear').onclick = () => { sentence = []; sentenceBar.innerText = "Thinking..."; };
     document.getElementById('btn-translate').onclick = () => {
         const translated = sentence.map(w => TRANSLATIONS[w] || w).join(" ");
         sentenceBar.innerText = translated;
