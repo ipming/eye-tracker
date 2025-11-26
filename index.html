@@ -3,105 +3,212 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Eye-Tracking Communicator</title>
+    <title>Advanced Eye-Tracking Communicator</title>
+    <!-- Stable WebGazer CDN -->
     <script src="https://cdn.jsdelivr.net/npm/webgazer" type="text/javascript"></script>
     <style>
+        /* --- GLOBAL STYLES --- */
         body { 
-            font-family: 'Arial', sans-serif; text-align: center; background: #f0f0f0; 
-            margin: 0; padding: 20px; overflow: hidden; /* Prevent scrolling */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
+            text-align: center; background: #eaeff2; 
+            margin: 0; padding: 0; overflow: hidden; height: 100vh;
+            display: flex; flex-direction: column;
         }
-
-        /* --- CALIBRATION OVERLAY --- */
-        #calibration-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.95); z-index: 10000;
-            display: flex; flex-direction: column; align-items: center; justify-content: center;
-        }
-        
-        .cal-point {
-            width: 30px; height: 30px; border-radius: 50%;
-            background: red; border: 3px solid white;
-            position: absolute; cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .cal-point:active { transform: scale(0.8); background: yellow; }
-
-        /* Positions for 5-point calibration */
-        #pt1 { top: 10%; left: 10%; } /* Top Left */
-        #pt2 { top: 10%; right: 50%; transform: translateX(50%); } /* Top Center */
-        #pt3 { top: 10%; right: 10%; } /* Top Right */
-        #pt4 { bottom: 10%; left: 10%; } /* Bottom Left */
-        #pt5 { bottom: 10%; right: 10%; } /* Bottom Right */
-        #pt-center { top: 50%; left: 50%; transform: translate(-50%, -50%); width: 40px; height: 40px; }
-
-        #cal-instructions {
-            color: white; font-size: 24px; margin-top: -100px;
-        }
-
-        /* --- MAIN UI --- */
-        #main-interface { display: none; opacity: 0; transition: opacity 1s; }
-
-        #sentence-bar {
-            background: white; padding: 20px; font-size: 28px; border: 2px solid #333;
-            min-height: 40px; margin-bottom: 30px; border-radius: 10px; width: 60%; margin-left: 5%;
-        }
-
-        .grid {
-            display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
-            max-width: 800px; margin: 0 auto;
-        }
-
-        .card {
-            background: white; border: 1px solid #ccc; border-radius: 8px;
-            padding: 40px; font-size: 24px; cursor: pointer;
-            position: relative; user-select: none;
-        }
-        
-        .card.gazing { background: #e0f7fa; transform: scale(1.02); border: 2px solid #00acc1; }
-        
-        .progress {
-            position: absolute; bottom: 0; left: 0; height: 5px; background: #00acc1; width: 0%;
-            transition: width 0.1s linear;
-        }
-
-        .controls { margin-top: 40px; display: flex; justify-content: center; gap: 20px; }
-        .btn-action { padding: 15px 30px; font-size: 20px; border: none; border-radius: 5px; color: white; cursor: pointer; }
-        .btn-speak { background: #2196F3; }
-        .btn-translate { background: #4CAF50; }
-        .btn-clear { background: #f44336; }
 
         /* --- VIDEO PANEL (Top Right) --- */
         #webgazerVideoContainer {
-            position: fixed !important; top: 10px !important; right: 10px !important; left: auto !important;
-            width: 200px !important; height: auto !important;
-            border: 3px solid #333; border-radius: 10px; z-index: 5000;
+            position: fixed !important; top: 15px !important; right: 15px !important; 
+            left: auto !important;
+            width: 260px !important; height: auto !important;
+            border: 4px solid #333; border-radius: 12px; z-index: 9000;
+            background: black;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
         }
+
+        /* --- 1. GUIDELINE MODAL --- */
+        #guideline-screen {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9); z-index: 100000; color: white;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+        }
+        .guide-box {
+            background: #2c3e50; padding: 40px; border-radius: 15px; max-width: 600px; text-align: left;
+            border: 2px solid #3498db;
+        }
+        .guide-box h2 { margin-top: 0; color: #3498db; }
+        .guide-box li { margin-bottom: 10px; font-size: 18px; }
+        .btn-start {
+            margin-top: 20px; padding: 15px 40px; font-size: 22px; 
+            background: #27ae60; color: white; border: none; border-radius: 8px; cursor: pointer; width: 100%;
+        }
+
+        /* --- 2. CALIBRATION OVERLAY --- */
+        #calibration-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #111; z-index: 99999;
+            display: none; /* Hidden initially */
+            flex-direction: column; align-items: center; justify-content: center;
+        }
+        .cal-point {
+            width: 30px; height: 30px; border-radius: 50%;
+            background: #e74c3c; border: 3px solid white;
+            position: absolute; cursor: pointer;
+            box-shadow: 0 0 0 10px rgba(231, 76, 60, 0.2); /* Outer glow to help focus */
+            transition: transform 0.1s, background 0.2s;
+        }
+        .cal-point:active { transform: scale(0.8); background: #f1c40f; }
+
+        /* Calibration Positions (9 Points) */
+        #pt1 { top: 40px; left: 40px; } 
+        #pt2 { top: 40px; right: 40px; }
+        #pt3 { bottom: 40px; left: 40px; }
+        #pt4 { bottom: 40px; right: 40px; }
+        #pt5 { top: 50%; left: 50%; transform: translate(-50%, -50%); } 
+        #pt6 { top: 40px; left: 50%; transform: translateX(-50%); } 
+        #pt7 { bottom: 40px; left: 50%; transform: translateX(-50%); } 
+        #pt8 { top: 50%; left: 40px; transform: translateY(-50%); } 
+        #pt9 { top: 50%; right: 40px; transform: translateY(-50%); }
+
+        #cal-info { color: white; font-size: 24px; position: absolute; top: 15%; pointer-events: none;}
+        
+        /* --- 3. MAIN INTERFACE --- */
+        #main-interface { 
+            display: none; flex: 1; flex-direction: column; 
+            padding: 20px; box-sizing: border-box;
+            max-width: 1200px; margin: 0 auto; width: 100%;
+        }
+
+        /* Sentence Bar */
+        #sentence-container {
+            flex: 0 0 auto; margin-bottom: 20px;
+            display: flex; justify-content: flex-start;
+        }
+        #sentence-bar {
+            background: white; width: 65%; padding: 20px; 
+            font-size: 32px; font-weight: bold; border: 3px solid #34495e; 
+            border-radius: 10px; min-height: 50px; text-align: left;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        /* Content Area (Split: Words vs Actions) */
+        #content-area {
+            display: flex; flex: 1; gap: 20px;
+        }
+
+        /* Word Grid (Left, Larger) */
+        .grid {
+            flex: 3;
+            display: grid; grid-template-columns: repeat(3, 1fr); 
+            grid-template-rows: repeat(3, 1fr); gap: 15px;
+        }
+
+        /* Action Panel (Right, Smaller) */
+        .actions-panel {
+            flex: 1;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+
+        /* SHARED CARD STYLES */
+        .gazeable {
+            background: white; border: 1px solid #bdc3c7; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; font-weight: 600; cursor: pointer;
+            position: relative; user-select: none;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.1);
+            transition: transform 0.1s;
+        }
+
+        /* Specific Colors */
+        .word-card { color: #2c3e50; }
+        .action-card { color: white; font-size: 20px; }
+        
+        .act-speak { background: #3498db; border-color: #2980b9; }
+        .act-trans { background: #27ae60; border-color: #219150; }
+        .act-clear { background: #e74c3c; border-color: #c0392b; }
+        .act-recal { background: #f39c12; border-color: #d35400; font-size: 18px; }
+
+        /* Gaze Feedback */
+        .gazeable.gazing { transform: scale(0.98); filter: brightness(1.1); }
+        
+        /* Progress Bar inside cards */
+        .progress {
+            position: absolute; bottom: 0; left: 0; height: 8px; 
+            background: rgba(0,0,0,0.3); width: 0%;
+            border-bottom-left-radius: 8px; border-bottom-right-radius: 8px;
+        }
+
     </style>
 </head>
 <body>
 
-    <!-- CALIBRATION SCREEN -->
-    <div id="calibration-overlay">
-        <div id="cal-instructions">
-            Look at the RED DOTS and click each one <b>5 times</b>.<br>
-            <span style="font-size:16px; color: #ccc;">(Keep your head still!)</span>
+    <!-- 1. GUIDELINES POPUP -->
+    <div id="guideline-screen">
+        <div class="guide-box">
+            <h2>Eye Tracking Setup</h2>
+            <ul>
+                <li><b>Lighting:</b> Ensure your face is well-lit. No bright window behind you.</li>
+                <li><b>Position:</b> Sit comfortably. Keep your head relatively still.</li>
+                <li><b>Calibration:</b> You will see 9 Red Dots.</li>
+                <li><b>How to Calibrate:</b> Look at a dot, then <b>click it 5 times</b> while staring at it.</li>
+                <li><b>Usage:</b> Stare at a button for <b>2 seconds</b> to select it.</li>
+            </ul>
+            <button class="btn-start" onclick="startApp()">I Understand - Start Camera</button>
         </div>
-        <div class="cal-point" id="pt1" onclick="recordCalibration(this)"></div>
-        <div class="cal-point" id="pt2" onclick="recordCalibration(this)"></div>
-        <div class="cal-point" id="pt3" onclick="recordCalibration(this)"></div>
-        <div class="cal-point" id="pt-center" onclick="recordCalibration(this)"></div>
-        <div class="cal-point" id="pt4" onclick="recordCalibration(this)"></div>
-        <div class="cal-point" id="pt5" onclick="recordCalibration(this)"></div>
     </div>
 
-    <!-- MAIN APP -->
+    <!-- 2. CALIBRATION OVERLAY -->
+    <div id="calibration-overlay">
+        <div id="cal-info">
+            <h2 style="margin:0;">Calibration</h2>
+            <p id="cal-subtext" style="font-size:18px;">Click each dot 5 times while looking at it.</p>
+            <div id="cal-progress" style="color: #3498db; font-weight:bold;">Progress: 0%</div>
+        </div>
+        
+        <!-- 9 Points -->
+        <div class="cal-point" id="pt1" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt2" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt3" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt4" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt5" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt6" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt7" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt8" onclick="handleCalClick(this)"></div>
+        <div class="cal-point" id="pt9" onclick="handleCalClick(this)"></div>
+    </div>
+
+    <!-- 3. MAIN INTERFACE -->
     <div id="main-interface">
-        <div id="sentence-bar">Thinking...</div>
-        <div class="grid" id="word-grid"></div>
-        <div class="controls">
-            <button class="btn-action btn-speak" id="btn-speak">Speak</button>
-            <button class="btn-action btn-translate" id="btn-translate">Translate (ES)</button>
-            <button class="btn-action btn-clear" id="btn-clear">Clear</button>
+        
+        <!-- Top Bar -->
+        <div id="sentence-container">
+            <div id="sentence-bar">...</div>
+        </div>
+
+        <!-- Middle Area -->
+        <div id="content-area">
+            
+            <!-- Left: Word Grid -->
+            <div class="grid" id="word-grid"></div>
+
+            <!-- Right: Action Buttons (Eye Gaze Enabled) -->
+            <div class="actions-panel">
+                <div class="gazeable action-card act-speak" data-action="SPEAK">
+                    SPEAK
+                    <div class="progress"></div>
+                </div>
+                <div class="gazeable action-card act-trans" data-action="TRANSLATE">
+                    TRANSLATE (ES)
+                    <div class="progress"></div>
+                </div>
+                <div class="gazeable action-card act-clear" data-action="CLEAR">
+                    CLEAR
+                    <div class="progress"></div>
+                </div>
+                <div class="gazeable action-card act-recal" data-action="RECALIBRATE" data-dwell="3000">
+                    RECALIBRATE
+                    <div class="progress"></div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -112,131 +219,194 @@
         "YES": "SÍ", "NO": "NO", "WATER": "AGUA", "FOOD": "COMIDA",
         "PAIN": "DOLOR", "TOILET": "BAÑO", "COLD": "FRÍO", "HOT": "CALIENTE", "THANKS": "GRACIAS"
     };
-    
-    // ADJUST THESE FOR PERFORMANCE
-    const DWELL_TIME_MS = 1000; 
-    const SMOOTHING_BUFFER_SIZE = 25; // Higher = Smoother but slower lag. Lower = Jittery but fast.
 
-    // --- VARIABLES ---
+    // TIMING SETTINGS
+    const DEFAULT_DWELL_MS = 2000;  // 2 Seconds standard
+    const SMOOTHING_BUFFER = 25;    // Increased for stability (higher = less jitter, more lag)
+
+    // --- STATE VARIABLES ---
     let sentence = [];
     let currentGazeTarget = null;
     let gazeStartTime = 0;
     
-    // Smoothing Arrays
     let xHistory = [];
     let yHistory = [];
-
-    // Calibration State
+    
     let calibrationClicks = 0;
-    const TOTAL_CLICKS_NEEDED = 30; // 6 dots * 5 clicks each
+    const CLICKS_PER_PT = 5;
+    const TOTAL_POINTS = 9;
+    const TOTAL_CLICKS_REQ = TOTAL_POINTS * CLICKS_PER_PT;
 
     const synth = window.speechSynthesis;
     const sentenceBar = document.getElementById('sentence-bar');
     const wordGrid = document.getElementById('word-grid');
 
-    // Build Word Grid
+    // --- INITIALIZATION ---
+    
+    // 1. Build Word Grid Dynamically
     WORDS.forEach(word => {
         const div = document.createElement('div');
-        div.className = 'card';
+        div.className = 'gazeable word-card'; // Add 'gazeable' class
         div.dataset.word = word;
         div.innerHTML = `${word}<div class="progress"></div>`;
         wordGrid.appendChild(div);
     });
 
-    // --- WEBGAZER SETUP ---
-    window.onload = async function() {
-        webgazer.clearData(); // Wipe old data
-
+    // 2. Start Button Clicked
+    async function startApp() {
+        document.getElementById('guideline-screen').style.display = 'none';
+        
+        // Initialize WebGazer
         await webgazer.setRegression('ridge') 
-            .setGazeListener((data, clock) => {
-                if (data == null) return;
-                
-                // 1. APPLY SMOOTHING
-                const smoothPos = getSmoothedCoordinates(data.x, data.y);
-                
-                // 2. CHECK INTERACTION (Only if calibration is done)
-                if(document.getElementById('calibration-overlay').style.display === 'none'){
-                    checkGaze(smoothPos.x, smoothPos.y);
-                }
-            })
-            .saveDataAcrossSessions(false) // Don't save across reloads for fresh calibration
+            .setGazeListener(gazeListener)
+            .saveDataAcrossSessions(false) 
             .begin();
             
-        // Show the red prediction dot to help user see where computer thinks they are looking
+        // Show the red dot so caregiver can see where it thinks eyes are
         webgazer.showPredictionPoints(true); 
-    };
 
-    // --- SMOOTHING ALGORITHM ---
-    function getSmoothedCoordinates(x, y) {
-        xHistory.push(x);
-        yHistory.push(y);
-
-        // Keep buffer at fixed size
-        if (xHistory.length > SMOOTHING_BUFFER_SIZE) {
-            xHistory.shift();
-            yHistory.shift();
+        // Center the prediction dot style
+        const dot = document.getElementById('webgazerGazeDot');
+        if(dot) {
+            dot.style.width = '15px';
+            dot.style.height = '15px';
+            dot.style.backgroundColor = 'rgba(255, 0, 0, 0.7)';
         }
 
-        // Calculate Average
-        const avgX = xHistory.reduce((a, b) => a + b, 0) / xHistory.length;
-        const avgY = yHistory.reduce((a, b) => a + b, 0) / yHistory.length;
-
-        return { x: avgX, y: avgY };
+        enterCalibrationMode();
     }
 
     // --- CALIBRATION LOGIC ---
-    function recordCalibration(element) {
+
+    function enterCalibrationMode() {
+        document.getElementById('main-interface').style.display = 'none';
+        document.getElementById('calibration-overlay').style.display = 'flex';
+        
+        // Reset State
+        calibrationClicks = 0;
+        updateCalProgress();
+        webgazer.clearData(); // Important: Start fresh
+        
+        // Reset visual dots
+        document.querySelectorAll('.cal-point').forEach(el => {
+            el.style.opacity = '1'; 
+            el.style.backgroundColor = '#e74c3c';
+        });
+    }
+
+    function handleCalClick(el) {
         calibrationClicks++;
         
-        // Visual feedback on click
-        let opacity = parseFloat(element.style.opacity || 1);
-        element.style.opacity = opacity - 0.15; // Fade out slightly per click
+        // Visual Feedback
+        el.style.backgroundColor = '#f1c40f'; // Flash Yellow
+        setTimeout(() => el.style.backgroundColor = '#e74c3c', 200);
 
-        if (calibrationClicks >= TOTAL_CLICKS_NEEDED) {
-            endCalibration();
+        updateCalProgress();
+
+        if (calibrationClicks >= TOTAL_CLICKS_REQ) {
+            finishCalibration();
         }
     }
 
-    function endCalibration() {
-        document.getElementById('calibration-overlay').style.display = 'none';
-        const main = document.getElementById('main-interface');
-        main.style.display = 'block';
-        setTimeout(() => main.style.opacity = 1, 100);
-        speak("Calibration complete. Ready.");
+    function updateCalProgress() {
+        const pct = Math.round((calibrationClicks / TOTAL_CLICKS_REQ) * 100);
+        document.getElementById('cal-progress').innerText = `Progress: ${pct}%`;
+        
+        if (pct < 50) {
+            document.getElementById('cal-subtext').innerText = "Keep going! Look at the clicked dot.";
+        } else {
+            document.getElementById('cal-subtext').innerText = "Almost there. Keep head still.";
+        }
     }
 
-    // --- GAZE LOGIC ---
-    function checkGaze(x, y) {
-        const element = document.elementFromPoint(x, y);
+    function finishCalibration() {
+        document.getElementById('calibration-overlay').style.display = 'none';
+        document.getElementById('main-interface').style.display = 'flex'; // Use Flex for layout
+        speak("System Ready");
+    }
 
-        if (element && element.classList.contains('card')) {
+    // --- GAZE PROCESSING ---
+
+    function gazeListener(data, clock) {
+        if (data == null) return;
+        
+        // 1. Smooth the raw data
+        const smooth = getSmoothedCoordinates(data.x, data.y);
+        
+        // 2. Interact only if NOT in calibration mode
+        if (document.getElementById('calibration-overlay').style.display === 'none') {
+            handleIntersection(smooth.x, smooth.y);
+        }
+    }
+
+    // Simple Moving Average Buffer to reduce jitter
+    function getSmoothedCoordinates(x, y) {
+        xHistory.push(x);
+        yHistory.push(y);
+        
+        if (xHistory.length > SMOOTHING_BUFFER) {
+            xHistory.shift();
+            yHistory.shift();
+        }
+        
+        const avgX = xHistory.reduce((a,b)=>a+b,0) / xHistory.length;
+        const avgY = yHistory.reduce((a,b)=>a+b,0) / yHistory.length;
+        
+        return { x: avgX, y: avgY };
+    }
+
+    // --- INTERACTION LOGIC (The Core) ---
+
+    function handleIntersection(x, y) {
+        // Temporarily hide the prediction dot so we can pick the element underneath it
+        const dot = document.getElementById('webgazerGazeDot');
+        if(dot) dot.style.display = 'none';
+        
+        const element = document.elementFromPoint(x, y);
+        
+        if(dot) dot.style.display = 'block'; // Show it again
+
+        // Check if element is "gazeable" (Word OR Action Button)
+        if (element && element.classList.contains('gazeable')) {
             if (currentGazeTarget !== element) {
-                resetGaze();
+                resetDwell(); // Stop looking at old thing
+                
                 currentGazeTarget = element;
                 element.classList.add('gazing');
                 gazeStartTime = Date.now();
-                requestAnimationFrame(updateDwell);
+                
+                requestAnimationFrame(dwellLoop);
             }
         } else {
-            resetGaze();
+            // Looking at blank space
+            resetDwell();
         }
     }
 
-    function updateDwell() {
+    function dwellLoop() {
         if (!currentGazeTarget) return;
-        const elapsed = Date.now() - gazeStartTime;
-        const bar = currentGazeTarget.querySelector('.progress');
-        if(bar) bar.style.width = Math.min((elapsed / DWELL_TIME_MS) * 100, 100) + '%';
 
-        if (elapsed >= DWELL_TIME_MS) {
-            selectWord(currentGazeTarget.dataset.word);
-            resetGaze();
+        const elapsed = Date.now() - gazeStartTime;
+        
+        // Check if button has custom time (e.g. Recalibrate takes longer)
+        const requiredTime = currentGazeTarget.dataset.dwell ? parseInt(currentGazeTarget.dataset.dwell) : DEFAULT_DWELL_MS;
+        
+        // Visual Progress
+        const bar = currentGazeTarget.querySelector('.progress');
+        if(bar) {
+            const pct = Math.min((elapsed / requiredTime) * 100, 100);
+            bar.style.width = pct + '%';
+        }
+
+        if (elapsed >= requiredTime) {
+            triggerAction(currentGazeTarget);
+            resetDwell();
         } else {
-            requestAnimationFrame(updateDwell);
+            requestAnimationFrame(dwellLoop);
         }
     }
 
-    function resetGaze() {
+    function resetDwell() {
         if (currentGazeTarget) {
             currentGazeTarget.classList.remove('gazing');
             const bar = currentGazeTarget.querySelector('.progress');
@@ -245,36 +415,60 @@
         currentGazeTarget = null;
     }
 
-    // --- APP FUNCTIONS ---
-    function selectWord(word) {
-        sentence.push(word);
-        sentenceBar.innerText = sentence.join(" ");
-        speak(word);
+    // --- EXECUTE ACTIONS ---
+
+    function triggerAction(element) {
+        // Visual Flash
+        const originalColor = element.style.backgroundColor;
+        element.style.backgroundColor = '#ecf0f1'; // Flash white/grey
+        setTimeout(() => element.style.backgroundColor = originalColor, 200);
+
+        // 1. Is it a WORD?
+        if (element.dataset.word) {
+            const word = element.dataset.word;
+            sentence.push(word);
+            sentenceBar.innerText = sentence.join(" ");
+            speak(word);
+        }
         
-        const btn = document.querySelector(`.card[data-word="${word}"]`);
-        if(btn) {
-            btn.style.backgroundColor = '#81c784';
-            setTimeout(() => btn.style.backgroundColor = 'white', 300);
+        // 2. Is it an ACTION?
+        else if (element.dataset.action) {
+            const action = element.dataset.action;
+            
+            if (action === "SPEAK") {
+                speak(sentence.join(" "));
+            }
+            else if (action === "CLEAR") {
+                sentence = [];
+                sentenceBar.innerText = "...";
+                speak("Cleared");
+            }
+            else if (action === "TRANSLATE") {
+                const tr = sentence.map(w => TRANSLATIONS[w] || w).join(" ");
+                sentenceBar.innerText = tr;
+                speak(tr, 'es-ES');
+            }
+            else if (action === "RECALIBRATE") {
+                speak("Recalibrating");
+                setTimeout(enterCalibrationMode, 1000); // Small delay
+            }
         }
     }
 
     function speak(text, lang='en-US') {
-        if (text === '') return;
-        const utterThis = new SpeechSynthesisUtterance(text);
-        utterThis.lang = lang;
-        synth.speak(utterThis);
+        if (!text || text === "...") return;
+        
+        // Cancel current speech to prevent queue buildup
+        synth.cancel(); 
+
+        const u = new SpeechSynthesisUtterance(text);
+        u.lang = lang;
+        u.rate = 0.9; // Slightly slower is usually better for patients
+        synth.speak(u);
     }
 
-    document.getElementById('btn-speak').onclick = () => speak(sentence.join(" "));
-    document.getElementById('btn-clear').onclick = () => { sentence = []; sentenceBar.innerText = "Thinking..."; };
-    document.getElementById('btn-translate').onclick = () => {
-        const translated = sentence.map(w => TRANSLATIONS[w] || w).join(" ");
-        sentenceBar.innerText = translated;
-        speak(translated, 'es-ES');
-    };
-
+    // Clean up
     window.onbeforeunload = () => webgazer.end();
 </script>
 </body>
 </html>
-
