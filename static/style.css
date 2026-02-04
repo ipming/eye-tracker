@@ -1,0 +1,68 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f0f4ff;
+    text-align: center;
+    margin: 0;
+    padding: 0;
+}
+h1 {
+    margin-top: 24px;
+}
+.matrix-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 110px);
+    gap: 16px;
+    justify-content: center;
+    margin: 30px auto;
+    width: max-content;
+}
+.matrix-cell {
+    background: #fff;
+    padding: 22px;
+    border-radius: 8px;
+    box-shadow: 0 0 4px #b3a1f7;
+    font-size: 18px;
+    min-width: 75px;
+    min-height: 42px;
+    outline: none;
+    transition: box-shadow 0.2s, background 0.2s;
+    cursor: pointer;
+}
+.matrix-cell.selected, .matrix-cell.gaze-hover {
+    background: #c9e8ff;
+    box-shadow: 0 0 10px #3cf;
+}
+#calibrate-btn, #complete-btn {
+    margin: 20px;
+    padding: 12px 36px;
+    font-size: 17px;
+    border: none;
+    border-radius: 6px;
+    background: #6236ff;
+    color: #fff;
+    cursor: pointer;
+}
+#overlay, #webcam {
+    position: absolute;
+    left: 0;
+    right: 0;
+    display: block;
+    margin: 0 auto;
+    margin-top: 15px;
+}
+#selected-words {
+    margin: 18px auto;
+    font-size: 18px;
+    color: #325;
+    min-height: 24px;
+}
+#ai-result {
+    margin-top: 18px;
+    font-size: 20px;
+    color: #202066;
+    font-weight: bold;
+}
+@media (max-width: 600px) {
+    .matrix-grid { grid-template-columns: repeat(3, 1fr);}
+    #webcam, #overlay { width: 90vw; height: 70vw; max-width: none; }
+}
