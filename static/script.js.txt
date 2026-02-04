@@ -1,0 +1,36 @@
+// -- script.js --
+let calibrating = false;
+
+document.getElementById('calibrate-btn').onclick = () => {
+    calibrating = true;
+    alert('Calibration started! Look at the center cell.');
+    // You would save gaze info here!
+    calibrating = false;
+};
+
+import('@mediapipe/face_mesh')
+.then(({ FaceMesh }) => {
+    import('@mediapipe/camera_utils').then(({ Camera }) => {
+        const videoElement = document.getElementById('webcam');
+
+        function onResults(results) {
+            // You get eye and face landmarks here
+            // Use results.multiFaceLandmarks
+            // You can now estimate gaze direction!
+        }
+
+        const faceMesh = new FaceMesh({
+            locateFile: (file) =>
+                `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`,
+        });
+        faceMesh.setOptions({ maxNumFaces: 1 });
+        faceMesh.onResults(onResults);
+
+        const camera = new Camera(videoElement, {
+            onFrame: async () => await faceMesh.send({ image: videoElement }),
+            width: 400,
+            height: 300,
+        });
+        camera.start();
+    });
+});

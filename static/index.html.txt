@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Eye Gaze Detection</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body { font-family: sans-serif; text-align: center; background:#f0f4ff;}
+        .matrix-grid {
+            display: grid; grid-template-columns: repeat(3, 120px); grid-gap: 16px;
+            justify-content:center; margin: 40px auto; width: fit-content;
+        }
+        .matrix-cell {
+            background:#fff; border-radius:8px; box-shadow:0 0 4px #c8d;
+            padding:24px; font-size:20px;
+        }
+        .matrix-cell:focus {outline:2px solid #36f;}
+        #calibrate-btn {
+            padding:10px 32px; font-size:18px; margin-top:28px;
+            background:#36f; color:#fff; border:none; border-radius:6px; cursor:pointer;
+        }
+        video { margin: 15px auto; border-radius: 8px; }
+    </style>
+</head>
+<body>
+    <h1>Eye Gaze Detection Project</h1>
+    <video id="webcam" autoplay width="400" height="300"></video>
+    <div>
+        <button id="calibrate-btn">Calibrate</button>
+    </div>
+    <div class="matrix-grid" id="matrix-grid">
+        <div class="matrix-cell" contenteditable="true">Word 1</div>
+        <div class="matrix-cell" contenteditable="true">Word 2</div>
+        <div class="matrix-cell" contenteditable="true">Word 3</div>
+        <div class="matrix-cell" contenteditable="true">Word 4</div>
+        <div class="matrix-cell" contenteditable="true">Word 5</div>
+        <div class="matrix-cell" contenteditable="true">Word 6</div>
+        <div class="matrix-cell" contenteditable="true">Word 7</div>
+        <div class="matrix-cell" contenteditable="true">Word 8</div>
+        <div class="matrix-cell" contenteditable="true">Word 9</div>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
