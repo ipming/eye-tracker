@@ -1,20 +1,107 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>eye-tracker camera test</title>
+  <meta charset="UTF-8">
+  <title>Eye Tracker</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <style>
-    #video { width: 480px; height: 360px; background:#000; }
+    body {
+      background: #f8fafc;
+      color: #222;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      padding: 0;
+      min-height: 100vh;
+    }
+    header {
+      text-align: center;
+      padding: 2rem 1rem 0.5rem 1rem;
+      font-size: 2rem;
+      font-weight: bold;
+      letter-spacing: 1px;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    #video {
+      width: 100%;
+      max-width: 480px;
+      height: auto;
+      border-radius: 12px;
+      margin-bottom: 2rem;
+      background: #000;
+      aspect-ratio: 4/3;
+      box-shadow: 0 2px 24px rgba(0,0,0,0.1);
+      object-fit: cover;
+      display: block;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(80px, 1fr));
+      grid-gap: 1rem;
+      width: 100%;
+      max-width: 480px;
+      margin-bottom: 1.5rem;
+    }
+    .grid input[type="text"] {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      border: 2px solid #a7f3d0;
+      border-radius: 10px;
+      background: #fff;
+      text-align: center;
+      outline: none;
+      transition: border 0.2s, box-shadow 0.2s;
+    }
+    .grid input[type="text"]:focus {
+      border: 2px solid #22d3ee;
+      box-shadow: 0 0 0 2px #bae6fd;
+    }
+    @media (max-width: 600px) {
+      .container, .grid {max-width: 95vw;}
+      #video {max-width: 100vw;}
+    }
   </style>
 </head>
 <body>
-  <h1>eye-tracker</h1>
-  <video id="video" autoplay></video>
+  <header>eye-tracker</header>
+  <div class="container">
+    <video id="video" autoplay playsinline></video>
+    <div class="grid" id="wordGrid">
+      <input type="text" value="Word 1">
+      <input type="text" value="Word 2">
+      <input type="text" value="Word 3">
+      <input type="text" value="Word 4">
+      <input type="text" value="Word 5">
+      <input type="text" value="Word 6">
+      <input type="text" value="Word 7">
+      <input type="text" value="Word 8">
+      <input type="text" value="Word 9">
+    </div>
+    <!-- You can add more controls (e.g., a button) below if needed -->
+  </div>
   <script>
-    navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
-      document.getElementById('video').srcObject = stream;
-    }).catch(e => {
-      alert('Camera not allowed or available: ' + e);
-    });
+    // Start the camera
+    const video = document.getElementById('video');
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+      })
+      .catch(e => {
+        video.style.display = 'none';
+        const errMsg = document.createElement('div');
+        errMsg.textContent = "Could not access camera: " + e.message;
+        errMsg.style.color = '#b91c1c';
+        errMsg.style.padding = '1.5rem';
+        errMsg.style.textAlign = 'center';
+        document.querySelector('.container').prepend(errMsg);
+      });
   </script>
 </body>
 </html>
